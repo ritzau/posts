@@ -1,3 +1,12 @@
 # Ritzau's Posts
 
-This page is intentionally left blank.
+## Build
+
+### Tools
+
+- zsh
+- CMake
+- Cargo
+- Bazel
+- dotnet
+- Deno (?)
