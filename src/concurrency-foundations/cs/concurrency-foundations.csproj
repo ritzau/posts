@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>concurrency_foundations</RootNamespace>
+    <BaseOutputPath>../../../build-dotnet/bin</BaseOutputPath>
+    <IntermediateOutputPath>../../../build-dotnet/obj</IntermediateOutputPath>
+    <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+  </PropertyGroup>
+</Project>

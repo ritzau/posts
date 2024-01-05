@@ -1,0 +1,10 @@
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_binary")
+
+kt_jvm_binary(
+    name = "foundations",
+    srcs = glob(["*.kt"]),
+    main_class = "se.ritzau.posts.cs.concurrency.foundations.ThreadsKt",
+    deps = [
+        "@maven//:org_jetbrains_kotlinx_kotlinx_coroutines_core_jvm",
+    ],
+)

@@ -1,0 +1,31 @@
+#!/usr/bin/env zsh
+
+set -euo pipefail
+
+function setupMacOs() {
+    # Check output
+    if ! /usr/bin/xcodebuild -version
+    then
+        >&2 echo "XCode is required"
+        exit 5
+    fi
+
+
+    # Only install if not available
+    if ! brew --version
+    then
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
+
+    brew update
+    brew upgrade
+    brew install bazelisk clang-format cmake deno dotnet kotlin ktlint openjdk rust volta
+}
+
+OSNAME=$(uname)
+
+if [[ $OSNAME == "Darwin" ]] then
+    setupMacOs
+else
+    >&2 echo "Unsupported OS: $(uname)"
+fi
