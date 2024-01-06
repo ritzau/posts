@@ -46,6 +46,13 @@ to write concurrent code.
 
 - Note that code is written to fit the screen, e.g. `using std`.
 
+## Terminology
+
+- Concurrency
+- Data race
+- Race condtition
+- Thread
+
 ## The good bits of Concurrency
 
 Consider a freeway with multiple lanes: each lane allows additional cars to
