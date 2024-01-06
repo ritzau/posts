@@ -26,6 +26,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   A collection of notes on technology in general and coding in particular
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
+show_drafts: true
 
 # Build settings
 theme: minima
