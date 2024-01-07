@@ -5,84 +5,64 @@ date: 2024-01-01 14:24:26 +0100
 categories: wip post blog cs concurrency essentials foundations
 ---
 
-## TL;DR
-
-Concurrency, the ability to run multiple sequences of operations in parallel, is
-a great tool to improve the efficiency of your code. But with great power comes
-great responsibility; concurrency introduces its own set of challenges. In this
-post you will learn all you need to write efficient and hassle free concurrent
-code.
-
-To get started we take a look at some basic techniques to write concurrent code
-using **Kotlin and C++**, after which we take a look at data races and race
-conditions which both represents the primary issues that can be caused by
-concurrency. A data race is an unpredictability caused by the timing of events
-that are out of control of the developer, and they can easily cause race
-conditions which may in turn cause concurrent code to have inconsistent view of
-the state of the program. For a race condition to occur, concurrent code needs
-to access the same data, and at least one thread needs to update the data.
-
-The easiest way to avoid a race condition is to ensure that these conditions are
-not met. This can typically be done by only allow data to be accessed from a
-single thread, to use thread safe data structures, or to disallow write access
-to the data.
-
-However, sometimes you need to squeeze more efficiency out of the code and in
-some cases you can do this by using synchronization mechanisms that allow
-concurrent code to read and update the state of your program. In this post we
-will be looking at a mechanism called Mutex. It is the most common
-synchronization mechanism and it will cover your needs for the vast majority of
-cases.
-
-But synchronization comes at a cost. Most importantly, synchronization may cause
-deadlocks, and you can’t use synchronization without understanding how deadlocks
-arise. You will learn a strategy that guarantees that your code will be deadlock
-free, simply by avoiding to hold a Mutex while waiting for another.
-
-By learning the best practices presented here, you will have everything you need
-to write concurrent code.
-
 ## Introduction
 
-- Note that code is written to fit the screen, e.g. `using std`.
+This note aims to support developers who wants to add concurrency to their
+toolbelt. I wouldn't expect a new grad to take this on in production, a few
+years to get established as a software engineer is generally recommended.
 
-## Terminology
+We will start by looking at what concurrency is, then why you want to use it in
+your code. Then we will dive in and look at how to write concurrent code using a
+few different languages. After that we will take a closer look at the pitfalls
+of concurrency and how to avoid them using synchronization, only to see that now
+we opened up for potential deadlocks. We will end the note with some guides on
+how to avoid locking up your program. This knowledge is all you need to take
+advantage of concurrent code.
 
-- Concurrency
-- Data race
-- Race condtition
-- Thread
+The code examples are written to fit all screens, meaning that the brevity may
+be beyond what I would write for production. For example, the C++ examples
+assumes that we are `using std`, which I would never recommend in general.
 
-## The good bits of Concurrency
+## Introducing Concurrency
 
-Consider a freeway with multiple lanes: each lane allows additional cars to
-travel in parallel, increasing the road's overall throughput. Similarly, a
-grocery store with several cashiers or a restaurant kitchen with multiple chefs
-efficiently handles more customers simultaneously. These everyday examples
-mirror the concept of concurrency in software development.
+A non-concurrent program executes operations in a sequence, while a _concurrent_
+program executes multiple sequences of operations. New sequences are typically
+started and stopped dynamically during the execution of the program. Typical
+examples include:
 
-In the realm of coding, concurrency is a powerful tool for enhancing efficiency.
-Modern processors have transitioned from higher clock speeds to boasting more
-cores. To fully harness the power of these multi-core processors, your code
-needs to be structured to execute tasks concurrently. For instance, a web
-service can be designed to handle multiple requests in parallel, or a game
-engine might calculate the next state of the game while rendering the current
-scene.
+- Fetching data while rendering a user interface.
+- Computing the next state of a game while rendering the current state.
+- A web server that processes the requests of multiple clients at the same time.
+- A GPU that runs shaders to compute color the pixels of a scene.
+
+There are two main reasons to use concurrency: efficient use of the hardware and
+simplify the division of logical components of a program.
+
+- When it comes to efficiency, the clock frequency of processors have not
+  improved much the last X years, while the number of processor cores are
+  steadily increasing. To put the cores to use, the code needs to be concurrent.
+- An example of the logical split is to implement a producer of data and the
+  consumer of the data as two different components without the need to handle
+  the scheduling of these components.
+
+For analogies in the physical world, consider a freeway with multiple lanes:
+each lane allows additional cars to travel in parallel, increasing the road's
+overall throughput. Similarly, a grocery store with several cashiers or a
+restaurant kitchen with multiple chefs efficiently handles more customers
+simultaneously. These everyday examples mirror the concept of concurrency in
+software development.
 
 It's worth noting that concurrency benefits aren't limited to multi-core
 processors. Even on single-core systems, cores often idle while waiting for I/O
 operations, like reading from storage, network communication, or awaiting user
 input. In these scenarios, concurrency enables the execution of other tasks
-during these idle periods, optimizing resource utilization. When it comes to
-multi-core processors, this advantage is even more pronounced, as they cannot be
-fully utilized without concurrent task execution.
+during these idle periods, optimizing resource utilization.
 
 It’s also worth noting that concurrency is not a tool that can be used to
-increase performance in all situations, as in the case of getting 9 women
-pregnant won’t get you a baby in a month. Some operations needs to happen in
-sequence and in those situations more cores doesn’t increase performance.
+increase performance in all situations, as in the case of pregnancy: a woman
+cannot get a baby in a month using 9 men. Some things are inhenently sequential.
 
-## How to Write Concurrent Code
+## Writing Concurrent Code
 
 There are countless ways to write concurrent code. This section provides some
 examples of common approaches uses in popular runtimes.
@@ -178,31 +158,137 @@ code may very well run in separate processes, or even on different hosts. Even
 if the best practices presented here still apply, we stick to talk about
 concurrency within a process in this post.
 
-## Race Conditions
+## Pitfall #1: Data Races and Race Conditions
 
-Concurrency, while a powerful tool for efficiency, comes with its pitfalls. The
-two primary issues to watch out for are race conditions and deadlocks. **Race
-Conditions**: Imagine a race condition as a literal race on a freeway, where
-multiple cars (threads) vie for the same lane (resource). If no one enters or
-leaves the lane (writes to it) there is no race condition, but as soon as
-someone enters or leaves there we must prevent a race condition. All could be
-fine, but we may also end up in a crash. In software terms, a race condition
-occurs when multiple threads access the same resource, and at least one of them
-is writing to it. This can lead to inconsistency in the threads view of the
-data. Threads can even see teared data with data being partially overwritten.
-Detecting potential race conditions is crucial in both the coding and review
-phases.
+When performing work concurrenctly we can end up with _race conditions_. A race
+condition occurs when the timing that is out of the control of the developer
+affects the outcome of a computation. That typically means that you will see
+different results when you run the code, that may be all fine, but it may also
+be a bug. Bugs caused by race conditions may be of the "one in a billion" kind
+and may be very hard to identify.
+
+A _data race_ happens when two or more threads access the same resource without
+synchronization and at least one is modifying it. The resource is typically a
+memory location. Data races can result in some threads not seeing the current
+state of the resource and may also overwrite it, but it in some situations it
+can also lead to _tearing_, meaning that the resource is only partially updated.
+A partially updated resource typically leads to corrupt data and as such,
+undefined behavior.
+
+Imagine a race condition as a literal race on a freeway, where multiple cars
+(threads) vie for the same lane (resource). If no one enters or leaves the lane
+(writes to it) there is no race condition, but as soon as someone enters or
+leaves there we must prevent a race condition. All could be fine, but we may
+also end up in a crash. In software terms, a race condition occurs when multiple
+threads access the same resource, and at least one of them is writing to it.
+This can lead to inconsistency in the threads view of the data. Threads can even
+see teared data with data being partially overwritten. Detecting potential race
+conditions is crucial in both the coding and review phases.
+
+The following code is an example of a data race. Depending on your setup, you
+may need to adjust the number of iterations to get the (un)desired outcome. Here
+we have two threads that read and update the `counter` variable. Given the
+nature of modern hardware architectures you should see that `counter` is not
+equal to `2 * n` given a large enough n.
+
+```cpp
+const auto n = 1000000;
+auto counter = 0;
+
+auto f = [] { for (auto i = 0; i < n; ++i) ++counter; };
+auto t1 = thread(f);
+auto t2 = thread(f);
+
+t1.join();
+t2.join();
+
+cout << "Counter: " << counter << endl;
+```
 
 ## Avoiding Race Conditions
 
-- Access from a single thread
-  - All access from a single thread
-  - Copy data (also mention thread locals)
-  - Move data
-- Immutability
-- Thread safe data structures and atomics
+In the words of the great Mr. Miyagi, the best defense is not to be there. In
+many cases, it is possibly to avoid data races by breaking the invariant of a
+data race. A data race requires multiple threads to access the same resource
+without synchronization, while at least one is modifying the resource. Thus we
+can avoid the race by:
+
+- Accessing the resource from a single thread
+- Copying the data so that all threads have their own copy
+- Ensure that only a single thread has access to the resource (move semantics)
+- Let the threads work with immutable data
+- Use thread safe data structures and/or atomics
+
+Accessing resources from a single thread is common when it comes to UI
+frameworks. For example both Android, iOS, and Web only allow access to the UI
+hierarchy from the main thread. In other cases this may of course limit the
+possibilities of making use of concurrency, but often only the restriction on a
+single thread can be for short operations. A serial queue is commonly used to
+implement this.
+
+For the other cases we focus on ensuring that the data can only be modified by a
+single thread. Copying the data may be enough for some cases, but you often want
+to communicate some result back, and then some thread is responsible to combine
+the outcomes of the other threads, possibly hierarchically. In the data race
+example above, each thread would increment their own counter and then
+communicate the result back, and the main thread would then sum up the results
+giving the expected answer.
+
+Moving data is common in C++, Rust, and with Web Workers. This does not allow
+concurrent access, but rather ensures that only one thread **can** access a
+resource at any point in time.
+
+Immutability is a powerful tool in runtimes that lacks value semantics. Value
+semantics means that when you store a value, you will get a copy, the same holds
+when you pass values to a function. If you use reference semantics you will
+instead pass a reference to the same data. This is called _aliasing_, one value
+may have multiple aliases. Though this is not a problem if no one modifies the
+value. You can often avoid concurrency issues by making data that should not
+change immutable.
+
+Thread safe data structures and atomics is a topic for another note. For now,
+let's just say that an atomic type allows you to read and update variables
+atomically and it ensures that no data race can occur. The data race in the
+counter example can be fixed by simply making the counter atomic.
+
+```cpp
+const auto n = 1000000;
+auto counter = atomic_int(0);
+
+auto f = [] { for (auto i = 0; i < n; ++i) ++counter; };
+auto t1 = thread(f);
+auto t2 = thread(f);
+
+t1.join();
+t2.join();
+
+cout << "Counter: " << counter << endl;
+```
+
+So what is left? These techniques will take you far, but you may still end up in
+situations where they are not enough. They are enough to handle data races, but
+you can end up with data races when multiple resources needs to be updated
+atomically. Other examples include needing to conditionally wake up other
+threads but that is a topic for another note.
 
 ## Synchronization using Mutexes
+
+Consider a bank transaction where funds are transfered from one account to another. You will need to remove funds from one account and add to another. This needs to be atomically otherwise someone may see a state where the total funds does not add up. In this case atomics are not sufficient, you could do the operation on a single thread using a queue, but you may also use a mutex. The Java Virtual Machine (JVM) is interesting in many ways, one being that all object instances has a mutex. The following Kotlin example will show you how a bank transfer can be implemted.
+
+```kotlin
+class Bank(var accountA: Int, var accountB: Int) {
+  private val lock = object {}
+
+  fun transfer(amount: Int) = synchronized(lock) {
+    accountA -= amount
+    accountB += amount
+  }
+
+  fun totalFunds(): Int = synchronized(lock) {
+    return accountA + accountB
+  }
+}
+```
 
 ## Deadlocks
 
@@ -252,7 +338,40 @@ locks, lock them all at once. And most crucially, avoid holding a lock while
 calling external code, such as callbacks, as this significantly increases the
 risk of a deadlock.
 
-## Conclusions
+## Key Takeaways
+
+- **Leveraging Concurrency for Efficiency**: Concurrency is a powerful tool to
+  enhance the performance of your code, particularly on modern multi-core
+  processors, allowing for parallel task execution.
+- **Essential for UI Responsiveness**: In applications like mobile apps,
+  concurrency is vital to prevent blocking the UI thread, ensuring a smooth and
+  responsive user interface.
+- **Diverse Techniques for Implementation**: Implementing concurrency can be
+  achieved through various methods, including threads, executors/queues, and
+  coroutines, each suitable for different scenarios and needs.
+- **Navigating Race Conditions**: One of the primary challenges in concurrent
+  programming is avoiding race conditions. These occur when multiple threads
+  access the same data simultaneously, with at least one modifying it,
+  potentially leading to inconsistent results.
+- **Strategies to Prevent Race Conditions**:
+  - Ensure exclusive data access by a single thread.
+  - Use thread-safe data structures and atomic operations.
+  - Employ data copying or handover strategies for thread exclusivity.
+  - Embrace immutability where feasible.
+- **The Role of Synchronization**: When necessary, synchronization, primarily
+  through mutexes, can manage data access across threads but must be used
+  judiciously to balance performance.
+- **Deadlock Prevention**: A critical aspect of using synchronization is
+  avoiding deadlocks, which can be achieved by avoiding holding one mutex while
+  waiting for another and being cautious with callback invocations within locked
+  contexts.
+
+These insights offer a comprehensive overview of concurrency, its benefits,
+challenges, and strategies for safe and efficient implementation. Equipped with
+this knowledge, you're prepared to tackle concurrency in your coding projects
+with confidence.
+
+vs.
 
 - Concurrency can be used to increase the efficiency of your code.
 - Sometimes concurrency is required to avoid blocking the UI thread.
@@ -300,3 +419,10 @@ Concurrency Concepts," we'll dive deeper into sophisticated synchronization
 mechanisms, explore language-specific features, and discuss how to navigate the
 intricacies of concurrent programming in more complex environments. Stay tuned
 as we unlock the next level of concurrency mastery!
+
+## Terminology
+
+- Concurrency
+- Data race
+- Race condtition
+- Thread
