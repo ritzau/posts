@@ -1,4 +1,6 @@
-[![Try with Replit Badge](https://replit.com/badge?caption=Try%20with%20Replit)](https://replit.com/@ritzau/{{ include.href }})
-{: .right}
-
-**Example: C++ threads**
+<div style="display: flex; justify-content: space-between; align-items: baseline;">
+  <span><b>{{ include.title }}</b></span>
+<a href="https://replit.com/@ritzau/{{ include.href }}">
+    <img style="margin-bottom: 4px;" src="https://replit.com/badge?theme=light" />
+</a>
+</div>

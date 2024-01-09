@@ -1,8 +1,6 @@
-use std::thread;
+// use rust::mutex_example;
+use rust::thread_example;
 
 fn main() {
-    let f = || { println!("Hello, {:?}", thread::current().id()); };
-    let t = thread::spawn(f);
-    f();
-    t.join().unwrap();
+    thread_example();
 }
