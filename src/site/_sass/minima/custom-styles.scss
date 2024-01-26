@@ -115,10 +115,6 @@ html {
                 line-height: 1.1;
             }
 
-            :is(.site-title, .site-nav) {
-                font-size:  var(--font-size-navbar) !important;
-            }
-
             .post-meta {
                 font-size: var(--font-size-subtitle) !important;
             }
