@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Alegreya+SC:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans+SC:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&family=Alegreya+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&display=swap');
+
+// font-family: 'Alegreya', serif;
+// font-family: 'Alegreya Sans', sans-serif;
+// font-family: 'Alegreya Sans SC', sans-serif;
+// font-family: 'Alegreya SC', serif;
+// font-family: 'Fira Code', monospace;
+
+@media screen {
+    // @media (min-width: 600px) {
+        :root {
+            --font-size-body: 20px;
+            --font-size-h4: 22px;
+            --font-size-h3: 22px;
+            --font-size-h2: 23px;
+            --font-size-h1: 28px;
+            --font-size-code: 14px;
+            --font-size-navbar: 20px;
+            --font-size-subtitle: 18px;
+        }
+    // }
+
+    // @media (max-width: 600px) {
+    //     :root {
+    //         --font-size-body: 20px;
+    //         --font-size-h4: 20px;
+    //         --font-size-h3: 21px;
+    //         --font-size-h2: 23px;
+    //         --font-size-h1: 28px;
+    //         --font-size-code: 14px;
+    //         --font-size-navbar: 20px;
+    //         --font-size-subtitle: 18px;
+    //     }
+    // }
+}
+
+html {
+    font-size: var(--font-size-body);
+
+    body {
+        font-family: 'Alegreya', serif;
+        font-size: var(--font-size-body);
+        line-height: 1.4;
+
+        article.post {
+            h1, h2, h3 {
+                font-family: 'Alegreya Sans', sans-serif;
+                letter-spacing: 0;
+            }
+
+            h4, h5, h6 {
+                font-family: 'Alegreya Sans SC', sans-serif;
+                letter-spacing: 0;
+            }
+
+            h1, h2 {
+                color: orange;
+            }
+
+            h5, h6 {
+                color: salmon;
+                font-size: 42px;
+            }
+
+            h1 {
+                font-weight: 500;
+            }
+
+            h2 {
+                font-weight: 500;
+            }
+
+            h3 {
+                font-weight: 500;
+            }
+
+            h4 {
+                font-weight: 500;
+            }
+
+            h1, h2, h3 {
+                text-transform: uppercase;
+            }
+
+            h1 {
+                font-size: var(--font-size-h1);
+            }
+
+            h2 {
+                font-size: var(--font-size-h2);
+            }
+
+            h3 {
+                font-size: var(--font-size-h3);
+            }
+
+            h4 {
+                font-size: var(--font-size-h4);
+            }
+
+            // p, blockquote {
+            //     hyphens: auto;
+            // }
+
+            code {
+                //     font-family: 'Fira Code', monospace;
+                font-size:  var(--font-size-code) !important;
+                line-height: 1.1;
+            }
+
+            :is(.site-title, .site-nav) {
+                font-size:  var(--font-size-navbar) !important;
+            }
+
+            .post-meta {
+                font-size: var(--font-size-subtitle) !important;
+            }
+
+            .post-header {
+                margin-bottom: 20px;
+            }
+
+            h1:has(+ .post-meta) {
+                margin-bottom: 0;
+            }
+
+            h1, h2, h3, h4, h5, h6 {
+                margin-bottom: 12px;
+            }
+
+            p, blockquote, pre,
+            ul, ol, dl, figure {
+                margin-bottom: 15px;
+            }
+        }
+    }
+}
+
+@media print {
+    body > header, footer {
+        display: none;
+    }
+}
+
+@page {
+    margin: 3cm;
+}

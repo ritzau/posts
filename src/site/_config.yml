@@ -18,7 +18,7 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Notes on Coding
+title: "Re: Code"
 author:
   name: Tobias Ritzau
   email: tobias@ritzau.se
@@ -26,6 +26,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   A collection of notes on technology in general and coding in particular
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
+show_drafts: true
 
 # Build settings
 theme: minima
