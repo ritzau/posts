@@ -1,0 +1,26 @@
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_binary")
+
+kt_jvm_binary(
+    name = "foundations",
+    srcs = ["threads.kt"],
+    main_class = "se.ritzau.posts.cs.concurrency.foundations.ThreadsKt",
+    deps = [
+        "@maven//:org_jetbrains_kotlinx_kotlinx_coroutines_core_jvm",
+    ],
+)
+
+kt_jvm_binary(
+    name = "serial",
+    srcs = ["serial.kt"],
+    main_class = "se.ritzau.posts.cs.concurrency.foundations.SerialKt",
+    deps = [
+        "@maven//:org_jetbrains_kotlinx_kotlinx_coroutines_core_jvm",
+    ],
+)
+
+kt_jvm_binary(
+    name = "threads",
+    srcs = ["threads.kt"],
+    main_class = "se.ritzau.posts.cs.concurrency.foundations.ThreadsKt",
+    deps = [],
+)

@@ -1,0 +1,9 @@
+java_binary(
+    name = "foundations",
+    srcs = glob(["*.java"]),
+    main_class = "se.ritzau.posts.cs.concurrency.foundations.Threads",
+    deps = [
+        "@maven//:org_jetbrains_kotlinx_kotlinx_coroutines_core",
+        "@maven//:org_jetbrains_kotlinx_kotlinx_coroutines_core_jvm",
+    ],
+)
