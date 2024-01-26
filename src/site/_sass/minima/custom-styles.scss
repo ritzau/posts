@@ -42,6 +42,13 @@ html {
         font-size: var(--font-size-body);
         line-height: 1.4;
 
+        :is(.site-title, .site-nav) {
+            font-family: 'Alegreya Sans', sans-serif;
+            font-size:  var(--font-size-navbar) !important;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
         article.post {
             h1, h2, h3 {
                 font-family: 'Alegreya Sans', sans-serif;
