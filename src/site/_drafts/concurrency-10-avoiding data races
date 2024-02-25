@@ -1,0 +1,105 @@
+## Avoiding The Racces
+
+In the words of the great Mr. Miyagi, the best defense is not to be there. In many cases, it is possibly to avoid data races by breaking the invariant of a data race. A data race requires multiple threads to access the same resource and at least one needs to modify the resource. Thus we can avoid the race by:
+
+- Accessing the resource from a single thread
+- Prevent modification
+
+You can ensure that only one thread can access a resource by:
+
+- Using a serial queue to access the resource
+- By creating a copy for each thread
+- By moving the resource to the thread that needs access (and by that not making it possible for any other thread to access it.)
+
+### Single Threaded Access
+
+Using a serial queue, or a variant there of, is common when it comes to UI frameworks. For example both Android, iOS, and Web only allow access to the UI hierarchy from the main thread. To make it efficient, you need to limit the access to the shared data and perform as much of the computation without it and then, typically in the end but periodically also works, update the shared data. An example would be to load data from a file on a separate thread, and then update the UI with this data on the UI thread.
+
+{% include replit.md title="Example: Kotlin serial queue" href="" %}
+
+```kotlin
+x
+```
+
+The efficiency of using this teqnique all depends on how much of the computation that happens on the single thread. Most of all, this teqnique is simple to prove correct, and if efficiency is not the goal of the use of concurrency and the computation on the single thread is kept short, this is a good solution.
+
+### Copy Data
+
+Copying the data may be enough for some cases, but you often want to communicate some result back, and then have some thread responsible of combining the outcomes of the other threads, possibly hierarchically. In the data race example above, each thread can increment their own counter and then communicate the result back, and the main thread would then sum up the results giving the expected answer. This can easily be achieved using futures. To make it more interesting, we will not simply increment a counter, but instead sum up the elements of an array. The `[=]` notation specifies that data is copied into the threads.
+
+> The data in this example is read-only, and the example is not good. Replace.
+
+{% include replit.md title="Example: C++ copy data" href="" %}
+
+```cpp
+int future_sum(const vector<int>& numbers) {
+  auto start = numbers.cbegin();
+  auto split = numbers.cbegin() + numbers.size() / 2;
+  auto end = numbers.cend();
+
+  auto f1 = async([=] { return reduce(start, split); });
+  auto f2 = async([=] { return reduce(split, end); });
+
+  return f1.get() + f2.get();
+}
+```
+
+### Immutable data
+
+Immutability is a powerful tool in runtimes that lacks value semantics. Value semantics means that when you store a value, you will get a copy, the same holds when you pass values to a function. If you use reference semantics you will instead pass a reference to the same data. This is called _aliasing_, one value may have multiple aliases. Though this is not a problem if no one modifies the value. You can often avoid concurrency issues by making data that should not change immutable.
+
+> Example: Possibly Kotlin passing a string
+
+### Moving Data
+
+Moving data is common in C++, Rust, and with Web Workers. This does not allow concurrent access, but rather ensures that only one thread **can** access a resource at any point in time.
+
+{% include replit.md title="Example: Rust immutable data" href="" %}
+
+```rust
+let counter = Arc::new(0);
+
+let t = thread::spawn({
+    let counter_alias = counter.clone();
+    move || { *counter_alias + 42 }
+});
+
+let result = t.join().unwrap();
+println!("counter {} from the main thread!", result);
+```
+
+In this example we create an atomically reference counted (Arc) integer initialized to 0. By default, data referenced by an Arc is immutable. That means that when a new thread is spawned we can clone the reference, still refering to the same data, and safely access it from within the thread. The `move` modifier to the lambda means that the `counter_alias` referenced is moved it into the thread, and thus can no longer be accessed outside of it. More on that below. Also note that `||` is not a logical or operator, it is an empty list of arguments to the closure.
+
+### Thread Safe Types
+
+Thread safe data structures and atomics is a topic for another note. For now, let's just say that an atomic type allows you to read and update variables atomically and it ensures that no data race can occur. The data race in the counter example can be fixed by simply making the counter atomic.
+
+```cpp
+const auto n = 1'000'000;
+auto counter = atomic_int(0);
+
+auto f = [] { for (auto i = 0; i < n; ++i) ++counter; };
+auto t1 = thread(f);
+auto t2 = thread(f);
+
+t1.join();
+t2.join();
+
+cout << "Counter: " << counter << endl;
+```
+
+When using thread safe types, we delegate the responsibility of thread safety to another implementation. As long as we trust that implementation we can avoid the complexity. Atomics are typically implemented in hardware and quite cheap, though they only cover primitive types. In addition to atomics, the JVM standard library has a number of powerful thread safe data structures such as `ConcurrentHashMap` which can be very useful, but note that while thread safety makes it possible to access data from multiple threads, it doesn't allow you to atomically update multiple variables. If that is what you need, you will need to synchronize access and if you do you no longer need the thread safe type. More on that in the next section.
+
+### What Can We Do About It?
+
+So, you need the efficiency, how can you use concurrency safely? As Mr. Miyagi wisely advised in karate, “The best defense is no be there.” This philosophy is just as applicable in managing race conditions.
+
+**Avoiding Race Conditions**: The ideal approach is to design your system to avoid race conditions altogether. This can be done in two ways: by ensuring data is accessed by only one thread (common in UI frameworks like iOS, Android, and web applications) or by avoiding shared data altogether. In environments like Rust and with Web Workers, race conditions are circumvented by either making each thread work with its own copy of the data, eliminating races, or by transferring data ownership between threads, thus avoiding concurrent access. Fixme: Add section in thread safe data structures.
+
+**Synchronization When Avoidance Isn’t Possible**: If avoiding race conditions isn't feasible, then the next step is to synchronize access to shared resources. The key here is isolation – keep the synchronized code as simple, brief, and isolated as possible, ideally in a separate file. This makes it easier to understand and reduces the risk of errors.
+
+**Mutexes for Synchronization**: One common tool for synchronization is the Mutex (or lock). A mutex ensures that only one owner (be it a thread or a process) can access a resource at any given time. However, be cautious with recursive mutexes, as they can lead to a thread deadlocking itself if not handled correctly.
+
+**Scoped Mutexes**: Some systems provide scoped mutexes which automatically unlock at the end of a scope. This is helpful as it prevents forgetting to release the lock, but be aware, it doesn't eliminate the risk of deadlocks.
+
+**Avoiding Deadlocks**: Deadlocks occur when a process holding a resource is waiting for another resource, which is also being held. To simplify, try to never hold a lock while attempting to acquire another. If you must hold multiple locks, lock them all at once. And most crucially, avoid holding a lock while calling external code, such as callbacks, as this significantly increases the risk of a deadlock.
